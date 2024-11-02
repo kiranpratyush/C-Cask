@@ -24,7 +24,7 @@ input_schema process_key_value()
 {   const long MAX_CHAR = 100;
     char line[MAX_CHAR];
     if (fgets(line, MAX_CHAR, stdin) != NULL)
-    {
+    {   // Break the line by "\n"
         line[strcspn(line, "\n")] = '\0';
         if (strcmp(line, "exit") == 0)
         {
@@ -53,7 +53,7 @@ input_schema process_key_value()
         
         if(length<2)
         {
-            perror("Please input correct number of parameter");
+            perror("Please input correct number of parameter\n");
             exit(1);
         }
         char command_string[array[0]+2];
@@ -65,8 +65,8 @@ input_schema process_key_value()
         }
         command_string[pointer]='\0';
         pointer++;
-        // parse key here
-        char key_string[100];
+        // parse key 
+        char key_string[MAX_CHAR];
         int key_pointer = 0;
         while(pointer <= array[1])
         {
@@ -76,12 +76,11 @@ input_schema process_key_value()
 
         }
         key_string[key_pointer] = '\0';
-        char value_string[1000];
+        char value_string[MAX_CHAR];
         pointer++;
         if(length>2)
         {
             int value_pointer = 0;
-            printf("%d",array[2]);
             while(value_pointer<array[2])
             {
                 value_string[value_pointer]=line[pointer];
@@ -91,7 +90,7 @@ input_schema process_key_value()
             value_string[value_pointer] = '\0';
 
         }
-        printf("%s",value_string);
+        // Build input schema
         input_schema data_to_write;
         int key = process_key(key_string);
         data_to_write.key = key;
@@ -99,19 +98,19 @@ input_schema process_key_value()
         data_to_write.timestamp = time(NULL);
         if(strcmp(command_string,"GET")==0)
         {
-            data_to_write.value = NULL;
+            strcpy(data_to_write.value,"NULL");
             data_to_write.value_size = 0;
 
         }
         else if(strcmp(command_string,"DELETE")==0)
         {
-            data_to_write.value = "DELETE";
+            strcpy(data_to_write.value,"DELETE");
             data_to_write.value_size = strlen("DELETE");
 
         }
         else if(strcmp(command_string,"SET")==0)
         {
-            data_to_write.value = value_string;
+            strcpy(data_to_write.value,value_string);
             data_to_write.value_size = strlen(value_string);
 
         }
@@ -119,31 +118,34 @@ input_schema process_key_value()
 
     }
     else{
-        perror("Error reading input");
+        perror("Error reading input\n");
         exit(1);
     }
 }
 
-// Get the file name from the file_number
+// Get the file name from the file_number"
 void get_filename_from_number(int number, char *file_name)
-{
+{   // Build the db file name from the number
     char file_number[200];
     int number_pointer = 0;
     sprintf(file_number, "%d", number);
-    char *value = "file_";
+    char *value = "./db_files/file_";
     int pointer = 0;
+    // process the value name first
     while (*value != '\0')
     {
         file_name[pointer] = *value;
         value++;
         pointer++;
     }
+    // process the file number as a character first
     while (file_number[number_pointer] != '\0')
     {
         file_name[pointer] = file_number[number_pointer];
         number_pointer++;
         pointer++;
     }
+    // copy .db to the file
     for (char *j = ".db", i = 0; i < 3; i++, pointer++)
     {
         file_name[pointer] = j[i];
@@ -153,31 +155,25 @@ void get_filename_from_number(int number, char *file_name)
 // Gets the current file number by reading from the status file
 int read_currrent_file_number()
 {
-    char *file_name = "status_file.db";
-    FILE *file_pointer = fopen(file_name, "rb");
+    char *file_name = "db_files/status_file.db";
+    int file_number =0;
+    FILE *file_pointer = fopen(file_name, "r+b");
     if (file_pointer == NULL)
     {
-        perror("Error opening file");
-        exit(1);
+        printf("%s","file does not exist creating a new file");
+        file_pointer = fopen(file_name,"w+b");
+        
     }
-    int file_number;
-    if (fread(&file_number, sizeof(int), 1, file_pointer) < 1)
-    {
-        printf("%s", "error");
-        file_number = 0;
+    else{
+        fread(&file_number,sizeof file_number,1,file_pointer);
+        fclose(file_pointer);
+        printf("%d",file_number);
     }
-    int oringinal_file = file_number;
-    file_number++;
-    // Now write the updated number to the status file
+    file_pointer = fopen(file_name,"w+b");
+    int incremented_file_number = file_number+1;
+    int size = fwrite(&incremented_file_number,sizeof(int),1,file_pointer);
     fclose(file_pointer);
-    file_pointer = fopen(file_name, "w+b");
-    if (file_pointer == NULL)
-    {
-        perror("Error opening the file");
-        exit(1);
-    }
-    fwrite(&file_number, sizeof(int), 1, file_pointer);
-    return oringinal_file;
+    return file_number;
 }
 void write_to_key_dir(keydir_entry **keydir, keydir_entry *value)
 {
@@ -195,27 +191,26 @@ void write_to_key_dir(keydir_entry **keydir, keydir_entry *value)
 int main(int argc, char *argv[])
 {
     // This is my hash table
+    int MAX_FILE_NAME_LENGTH =200;
     keydir_entry *keydir = NULL;
     int curr_file_number = read_currrent_file_number();
-    char file_name[200];
+    char file_name[MAX_FILE_NAME_LENGTH];
     get_filename_from_number(curr_file_number, file_name);
 
-    FILE *file_pointer = fopen(file_name, "ab");
+    FILE *file_pointer = fopen(file_name, "ab+");
     if (file_pointer == NULL)
     {
-        perror("Error opening file");
+        perror("Error opening file \n");
         return 1;
     }
     while (1)
     {
         // Get the data_to_write here
-        input_schema data_to_write = process_key_value(argc, argv);
-        printf("%s",data_to_write.value);
-        printf("%d",data_to_write.key);
-        if (data_to_write.value != NULL)
-        { // This is a write operation write a function here which will automatically create a file If some threshold occurs
+        input_schema data_to_write = process_key_value();
+        if (strcmp(data_to_write.value, "NULL")!=0)
+        { // TODO file name change based on the cursor position
             long curr_pos = ftell(file_pointer);
-            keydir_entry *value = (keydir_entry *)(sizeof(keydir_entry));
+            keydir_entry *value = (keydir_entry *)malloc(sizeof(keydir_entry));
             value->value_pos = curr_pos;
             value->file_id = file_name;
             value->tstamp = data_to_write.timestamp;
@@ -223,7 +218,8 @@ int main(int argc, char *argv[])
             value->key = data_to_write.key;
             write_to_key_dir(&keydir, value);
             fwrite(&data_to_write, sizeof(input_schema), 1, file_pointer);
-            printf("\nAfter writing the current cursor position is at %ld \n", ftell(file_pointer));
+            printf("Write successful \n");
+            fflush(file_pointer);
         }
         else
         {
@@ -232,15 +228,12 @@ int main(int argc, char *argv[])
             keydir_entry *s = NULL;
             HASH_FIND_INT(keydir, &key, s);
             if (s != NULL)
-            {
-                long pos = s->value_pos;
-                long current_poition = ftell(file_pointer);
-                fseek(file_pointer, pos, SEEK_SET);
+            {   
+                FILE *read_file = fopen(s->file_id,"rb");
+                fseek(read_file, s->value_pos, SEEK_SET);
                 input_schema read_value;
-                fread(&read_value, sizeof(input_schema), 1, file_pointer);
-                // now reset the current pos
-                fseek(file_pointer, current_poition, SEEK_SET);
-                printf("%s", read_value.value);
+                int size =fread(&read_value, sizeof(input_schema), 1, read_file);
+                printf("%d => %s \n",read_value.key,read_value.value);
             }
         }
     }

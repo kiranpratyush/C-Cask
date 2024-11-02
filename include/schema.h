@@ -1,7 +1,7 @@
 
 typedef struct {
     int key;
-    char *value;
+    char value[100];
     unsigned int key_size;
     unsigned int value_size;
     time_t timestamp;
