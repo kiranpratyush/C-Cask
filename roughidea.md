@@ -10,3 +10,7 @@
 # start with key is an integer and value is a string
 # time stamp to the file.
 
+compaction and merging the files
+
+Add a logger based on log level
+

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "include/uthash.h"
-#include <time.h>
 #include "include/schema.h"
+#include "include/constants.h"
 
 //  As key is an integer converts the key passed as character array to the int
 int process_key(char *key_char)

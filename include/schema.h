@@ -1,4 +1,7 @@
 
+#ifndef MYSTRUCT_H
+#define MYSTRUCT_H
+#include<time.h>
 typedef struct {
     int key;
     char value[100];
@@ -15,3 +18,5 @@ typedef struct {
     UT_hash_handle hh;
     int key;
 } keydir_entry;
+
+#endif
