@@ -2,3 +2,4 @@ experiments
 *.out
 *.db
 .vscode
+logs

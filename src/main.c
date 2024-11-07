@@ -4,7 +4,8 @@
 #include "include/uthash.h"
 #include "include/schema.h"
 #include "include/constants.h"
-
+#include "compact.h"
+#include "utils.h"
 //  As key is an integer converts the key passed as character array to the int
 int process_key(char *key_char)
 {
@@ -123,58 +124,6 @@ input_schema process_key_value()
     }
 }
 
-// Get the file name from the file_number"
-void get_filename_from_number(int number, char *file_name)
-{   // Build the db file name from the number
-    char file_number[200];
-    int number_pointer = 0;
-    sprintf(file_number, "%d", number);
-    char *value = "./db_files/file_";
-    int pointer = 0;
-    // process the value name first
-    while (*value != '\0')
-    {
-        file_name[pointer] = *value;
-        value++;
-        pointer++;
-    }
-    // process the file number as a character first
-    while (file_number[number_pointer] != '\0')
-    {
-        file_name[pointer] = file_number[number_pointer];
-        number_pointer++;
-        pointer++;
-    }
-    // copy .db to the file
-    for (char *j = ".db", i = 0; i < 3; i++, pointer++)
-    {
-        file_name[pointer] = j[i];
-    }
-    file_name[pointer] = '\0';
-}
-// Gets the current file number by reading from the status file
-int read_currrent_file_number()
-{
-    char *file_name = "db_files/status_file.db";
-    int file_number =0;
-    FILE *file_pointer = fopen(file_name, "r+b");
-    if (file_pointer == NULL)
-    {
-        printf("%s","file does not exist creating a new file");
-        file_pointer = fopen(file_name,"w+b");
-        
-    }
-    else{
-        fread(&file_number,sizeof file_number,1,file_pointer);
-        fclose(file_pointer);
-        printf("%d",file_number);
-    }
-    file_pointer = fopen(file_name,"w+b");
-    int incremented_file_number = file_number+1;
-    int size = fwrite(&incremented_file_number,sizeof(int),1,file_pointer);
-    fclose(file_pointer);
-    return file_number;
-}
 void write_to_key_dir(keydir_entry **keydir, keydir_entry *value)
 {
     keydir_entry *s;
@@ -189,14 +138,16 @@ void write_to_key_dir(keydir_entry **keydir, keydir_entry *value)
 }
 
 int main(int argc, char *argv[])
-{
+{   set_tracelog_level(1);
+    set_log_path(NULL);
     // This is my hash table
-    int MAX_FILE_NAME_LENGTH =200;
     keydir_entry *keydir = NULL;
-    int curr_file_number = read_currrent_file_number();
-    char file_name[MAX_FILE_NAME_LENGTH];
-    get_filename_from_number(curr_file_number, file_name);
-
+    // do merging here before reading the file
+    merge(&keydir);
+    int curr_file_number = get_latest_db_file_number();
+    persist_latest_db_file_number();
+    char file_name[MAX_DB_FILE_NAME_SIZE];
+    build_db_file_name(curr_file_number,file_name);
     FILE *file_pointer = fopen(file_name, "ab+");
     if (file_pointer == NULL)
     {
@@ -228,7 +179,7 @@ int main(int argc, char *argv[])
             keydir_entry *s = NULL;
             HASH_FIND_INT(keydir, &key, s);
             if (s != NULL)
-            {   
+            {   traceLog(LOG_INFO,"%s file name",s->file_id);
                 FILE *read_file = fopen(s->file_id,"rb");
                 fseek(read_file, s->value_pos, SEEK_SET);
                 input_schema read_value;

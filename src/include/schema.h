@@ -1,6 +1,6 @@
 
-#ifndef MYSTRUCT_H
-#define MYSTRUCT_H
+#ifndef SCHEMA_H
+#define SCHEMA_H
 #include<time.h>
 typedef struct {
     int key;
